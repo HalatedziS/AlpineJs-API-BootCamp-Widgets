@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlpineJS API Widgets</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.2/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body class="p-4">
+
+    <div class="container">
+        <!-- Word Game Widget -->
+        <div x-data="wordGameWidget()" class="widget">
+            <h2 class="font-bold text-lg">Word Game</h2>
+            <input type="text" x-model="sentence" placeholder="Enter a sentence" class="border p-2 w-full mb-2">
+            <button @click="fetchWordGameResults()" class="bg-blue-500 text-white py-2 px-4 rounded">Get Word Stats</button>
+            <div x-show="result !== null" class="mt-4">
+                <p><strong>Longest Word:</strong> <span x-text="result?.longestWord ?? 'N/A'"></span></p>
+                <p><strong>Shortest Word:</strong> <span x-text="result?.shortestWord ?? 'N/A'"></span></p>
+                <p><strong>Sum of Lengths:</strong> <span x-text="isNumber(result?.sumOfLengths) ? result.sumOfLengths.toFixed(2) : 'N/A'"></span></p>
+            </div>
+        </div>
+
+        <!-- Total Phone Bill Widget -->
+        <div x-data="totalPhoneBillWidget()" class="widget">
+            <h2 class="font-bold text-lg">Total Phone Bill</h2>
+            <input type="text" x-model="bill" placeholder="Enter bill data (e.g., call, sms)" class="border p-2 w-full mb-2">
+            <button @click="fetchTotalPhoneBill()" class="bg-green-500 text-white py-2 px-4 rounded">Calculate Total</button>
+            <div x-show="total !== null" class="mt-4">
+                <p><strong>Total Phone Bill:</strong> R<span x-text="isNumber(total) ? total.toFixed(2) : 'N/A'"></span></p>
+            </div>
+        </div>
+
+        <!-- Enough Airtime Widget -->
+        <div x-data="enoughAirtimeWidget()" class="widget">
+            <h2 class="font-bold text-lg">Enough Airtime</h2>
+            <input type="text" x-model="usage" placeholder="Enter usage (e.g., call, sms)" class="border p-2 w-full mb-2">
+            <input type="number" x-model="availableAmount" placeholder="Enter available amount" class="border p-2 w-full mb-2">
+            <button @click="checkEnoughAirtime()" class="bg-red-500 text-white py-2 px-4 rounded">Check Airtime</button>
+            <div x-show="result !== null" class="mt-4">
+                <p><strong>Remaining Airtime:</strong> <span x-text="isNumber(result) && result >= 0 ? 'R' + result.toFixed(2) : 'Not Enough Airtime'"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define isNumber globally
+        function isNumber(value) {
+            return typeof value === 'number' && !isNaN(value);
+        }
+
+        function wordGameWidget() {
+            return {
+                sentence: '',
+                result: null,
+                fetchWordGameResults() {
+                    fetch(`http://localhost:3000/api/word_game?sentence=${encodeURIComponent(this.sentence)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.result = data;
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            this.result = null; // Handle error case
+                        });
+                },
+                isNumber(value) {
+                    return isNumber(value); // Call global function
+                }
+            }
+        }
+
+        function totalPhoneBillWidget() {
+            return {
+                bill: '',
+                total: null,
+                fetchTotalPhoneBill() {
+                    console.log('Fetching total phone bill for:', this.bill); // Debug log
+                    fetch('http://localhost:3000/api/phonebill/total', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ bill: this.bill }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Data received:', data); // Debug log
+                        // Convert total to a number and update total
+                        this.total = parseFloat(data.total.replace('R', '').trim());
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        this.total = null; // Handle error case
+                    });
+                },
+                isNumber(value) {
+                    return isNumber(value); // Call global function
+                }
+            }
+        }
+
+        function enoughAirtimeWidget() {
+            return {
+                usage: '',
+                availableAmount: null,
+                result: null,
+                checkEnoughAirtime() {
+                    fetch('http://localhost:3000/api/enough', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ bill: this.usage, availableAmount: this.availableAmount }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        this.result = isNumber(data.result) ? data.result : -1; // Handle non-numeric results
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        this.result = null; // Handle error case
+                    });
+                },
+                isNumber(value) {
+                    return isNumber(value); // Call global function
+                }
+            }
+        }
+    </script>
+</body>
+</html>
